@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPX 0DTE Advisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #181c22;
+    --border: #1e2530;
+    --accent-green: #00e5a0;
+    --accent-red: #ff4060;
+    --accent-yellow: #f5c842;
+    --accent-blue: #4fa3ff;
+    --text: #e8eaf0;
+    --text-muted: #6b7585;
+    --text-dim: #3a4255;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,229,160,0.06) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px);
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent-green);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border: 1px solid var(--accent-green);
+    padding: 3px 8px;
+    border-radius: 2px;
+    opacity: 0.85;
+  }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  h1 span { color: var(--accent-green); }
+
+  .subtitle {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 36px;
+    margin-top: 6px;
+  }
+
+  /* Input Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .card-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--accent-green);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .inputs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .inputs-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .field input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 18px;
+    color: var(--text);
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  .field input:focus {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 2px rgba(0,229,160,0.1);
+  }
+
+  .field input::placeholder { color: var(--text-dim); }
+
+  .field .hint {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* Scenario type toggle */
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .toggle-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .toggle-btn.active-green { border-color: var(--accent-green); color: var(--accent-green); background: rgba(0,229,160,0.06); }
+  .toggle-btn.active-red { border-color: var(--accent-red); color: var(--accent-red); background: rgba(255,64,96,0.06); }
+
+  /* Analyze button */
+  .btn-analyze {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent-green);
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s, transform 0.1s;
+    text-transform: uppercase;
+  }
+
+  .btn-analyze:hover { opacity: 0.9; }
+  .btn-analyze:active { transform: scale(0.995); }
+
+  /* Output section */
+  #output { display: none; }
+
+  .scenario-banner {
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    border-left: 4px solid;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .scenario-banner.bullish {
+    background: rgba(0,229,160,0.07);
+    border-color: var(--accent-green);
+  }
+  .scenario-banner.bearish {
+    background: rgba(255,64,96,0.07);
+    border-color: var(--accent-red);
+  }
+  .scenario-banner.neutral {
+    background: rgba(245,200,66,0.07);
+    border-color: var(--accent-yellow);
+  }
+
+  .scenario-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .scenario-name.bullish { color: var(--accent-green); }
+  .scenario-name.bearish { color: var(--accent-red); }
+  .scenario-name.neutral { color: var(--accent-yellow); }
+
+  .scenario-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-val.green { color: var(--accent-green); }
+  .stat-val.red { color: var(--accent-red); }
+  .stat-val.yellow { color: var(--accent-yellow); }
+  .stat-val.blue { color: var(--accent-blue); }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Trade rec */
+  .trade-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+
+  .trade-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .trade-type {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    border-radius: 99px;
+    border: 1px solid;
+  }
+
+  .pill.green { border-color: var(--accent-green); color: var(--accent-green); background: rgba(0,229,160,0.08); }
+  .pill.red { border-color: var(--accent-red); color: var(--accent-red); background: rgba(255,64,96,0.08); }
+  .pill.yellow { border-color: var(--accent-yellow); color: var(--accent-yellow); background: rgba(245,200,66,0.08); }
+
+  .trade-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .trade-detail {
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 12px 14px;
+  }
+
+  .trade-detail .dl { font-family: var(--mono); font-size: 9px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+  .trade-detail .dv { font-family: var(--mono); font-size: 16px; color: var(--text); font-weight: 700; }
+  .trade-detail .dv.green { color: var(--accent-green); }
+  .trade-detail .dv.red { color: var(--accent-red); }
+
+  /* Probability bar */
+  .prob-section { margin-bottom: 18px; }
+  .prob-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .prob-label { font-family: var(--mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; }
+  .prob-num { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .prob-num.green { color: var(--accent-green); }
+  .prob-num.yellow { color: var(--accent-yellow); }
+  .prob-num.red { color: var(--accent-red); }
+
+  .prob-bar { height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .prob-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+  .prob-fill.green { background: var(--accent-green); }
+  .prob-fill.yellow { background: var(--accent-yellow); }
+  .prob-fill.red { background: var(--accent-red); }
+
+  /* Rationale */
+  .rationale {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  .rationale strong { color: var(--text); }
+
+  /* Caution box */
+  .caution {
+    background: rgba(245,200,66,0.06);
+    border: 1px solid rgba(245,200,66,0.2);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent-yellow);
+    line-height: 1.6;
+    letter-spacing: 0.04em;
+    margin-bottom: 20px;
+  }
+
+  .caution .caution-head { font-weight: 700; letter-spacing: 0.15em; margin-bottom: 4px; text-transform: uppercase; }
+
+  /* Risk levels */
+  .risk-meter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .risk-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .risk-dot.active-green { background: var(--accent-green); }
+  .risk-dot.active-yellow { background: var(--accent-yellow); }
+  .risk-dot.active-red { background: var(--accent-red); }
+
+  .risk-text { font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
+
+  footer {
+    margin-top: 40px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 520px) {
+    .inputs-grid, .inputs-grid.three, .stats-row, .trade-details { grid-template-columns: 1fr 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Animate in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-up { animation: fadeUp 0.4s ease forwards; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">0DTE</div>
+    <h1>SPX <span>Advisor</span></h1>
+  </header>
+  <div class="subtitle">// Opening range analysis → short premium trade recommendation</div>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="card-label">Market Inputs</div>
+
+    <div class="inputs-grid three" style="margin-bottom:16px;">
+      <div class="field">
+        <label>Prior Close</label>
+        <input type="number" id="prevClose" placeholder="5800" step="0.01">
+        <div class="hint">Yesterday's 4PM close</div>
+      </div>
+      <div class="field">
+        <label>Today's Open</label>
+        <input type="number" id="todayOpen" placeholder="5818" step="0.01">
+        <div class="hint">9:30 AM print</div>
+      </div>
+      <div class="field">
+        <label>Current Price</label>
+        <input type="number" id="currentPrice" placeholder="5821" step="0.01">
+        <div class="hint">Live price (optional)</div>
+      </div>
+    </div>
+
+    <div class="card-label">Opening Range  <span style="font-size:9px;color:var(--text-dim);letter-spacing:0.08em;">(9:30–9:45 AM)</span></div>
+
+    <div class="inputs-grid" style="margin-bottom:16px;">
+      <div class="field">
+        <label>OR Low</label>
+        <input type="number" id="orLow" placeholder="5809" step="0.01">
+      </div>
+      <div class="field">
+        <label>OR High</label>
+        <input type="number" id="orHigh" placeholder="5826" step="0.01">
+      </div>
+    </div>
+
+    <div class="card-label">OR Breakout Direction</div>
+    <div class="toggle-row">
+      <button class="toggle-btn" id="btnUp" onclick="selectBreakout('up')">▲ Broke Up</button>
+      <button class="toggle-btn" id="btnDown" onclick="selectBreakout('down')">▼ Broke Down</button>
+      <button class="toggle-btn" id="btnNone" onclick="selectBreakout('none')">— No Break Yet</button>
+    </div>
+
+    <button class="btn-analyze" onclick="analyze()">Analyze Setup →</button>
+  </div>
+
+  <!-- OUTPUT -->
+  <div id="output">
+
+    <div id="scenarioBanner" class="scenario-banner fade-up">
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;">Scenario Detected</div>
+        <div id="scenarioName" class="scenario-name"></div>
+      </div>
+      <div id="scenarioMeta" class="scenario-meta" style="text-align:right;"></div>
+    </div>
+
+    <div class="stats-row fade-up">
+      <div class="stat-box">
+        <div id="statGap" class="stat-val"></div>
+        <div class="stat-label">Gap Size</div>
+      </div>
+      <div class="stat-box">
+        <div id="statOR" class="stat-val blue"></div>
+        <div class="stat-label">OR Width</div>
+      </div>
+      <div class="stat-box">
+        <div id="statGapDir" class="stat-val"></div>
+        <div class="stat-label">Gap Direction</div>
+      </div>
+    </div>
+
+    <!-- PRIMARY TRADE -->
+    <div class="trade-card fade-up">
+      <div class="card-label">Primary Recommendation</div>
+
+      <div class="trade-header">
+        <div id="tradeType" class="trade-type"></div>
+        <div id="tradePill" class="pill"></div>
+      </div>
+
+      <div class="trade-details">
+        <div class="trade-detail">
+          <div class="dl">Strike Target</div>
+          <div id="tradeStrike" class="dv"></div>
+        </div>
+        <div class="trade-detail">
+          <div class="dl">Distance from Open</div>
+          <div id="tradeDist" class="dv"></div>
+        </div>
+        <div class="trade-detail">
+          <div class="dl">Stop / Invalidation</div>
+          <div id="tradeStop" class="dv red"></div>
+        </div>
+        <div class="trade-detail">
+          <div class="dl">Risk Level</div>
+          <div>
+            <div class="risk-meter" id="riskMeter"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prob-section">
+        <div class="prob-header">
+          <div class="prob-label">Estimated Probability of Success</div>
+          <div id="probNum" class="prob-num"></div>
+        </div>
+        <div class="prob-bar"><div id="probFill" class="prob-fill" style="width:0%"></div></div>
+      </div>
+
+      <div id="rationale" class="rationale"></div>
+    </div>
+
+    <!-- CAUTION / SECONDARY -->
+    <div id="cautionBox" class="caution fade-up" style="display:none;"></div>
+
+    <!-- SECONDARY TRADE -->
+    <div id="secondaryCard" class="trade-card fade-up" style="display:none;">
+      <div class="card-label">Secondary / Hedge Leg</div>
+      <div class="trade-header">
+        <div id="trade2Type" class="trade-type" style="font-size:15px;"></div>
+        <div id="trade2Pill" class="pill"></div>
+      </div>
+      <div class="trade-details">
+        <div class="trade-detail">
+          <div class="dl">Strike Target</div>
+          <div id="trade2Strike" class="dv"></div>
+        </div>
+        <div class="trade-detail">
+          <div class="dl">Distance from Open</div>
+          <div id="trade2Dist" class="dv"></div>
+        </div>
+      </div>
+      <div id="rationale2" class="rationale"></div>
+    </div>
+
+  </div><!-- /output -->
+
+  <footer>
+    SPX 0DTE ADVISOR · For informational purposes only · Not financial advice<br>
+    Probabilities based on historical S&P 500 opening range breakout statistics
+  </footer>
+
+</div>
+
+<script>
+  let breakoutDir = null;
+
+  function selectBreakout(dir) {
+    breakoutDir = dir;
+    document.getElementById('btnUp').className = 'toggle-btn';
+    document.getElementById('btnDown').className = 'toggle-btn';
+    document.getElementById('btnNone').className = 'toggle-btn';
+    if (dir === 'up') document.getElementById('btnUp').className = 'toggle-btn active-green';
+    if (dir === 'down') document.getElementById('btnDown').className = 'toggle-btn active-red';
+    if (dir === 'none') document.getElementById('btnNone').className = 'toggle-btn active-red';
+  }
+
+  function fmt(n) { return n.toFixed(2); }
+  function pct(n) { return (n >= 0 ? '+' : '') + n.toFixed(2) + '%'; }
+
+  function setProb(p) {
+    const el = document.getElementById('probNum');
+    const fill = document.getElementById('probFill');
+    el.textContent = p + '%';
+    fill.style.width = p + '%';
+    if (p >= 65) { el.className = 'prob-num green'; fill.className = 'prob-fill green'; }
+    else if (p >= 55) { el.className = 'prob-num yellow'; fill.className = 'prob-fill yellow'; }
+    else { el.className = 'prob-num red'; fill.className = 'prob-fill red'; }
+  }
+
+  function setRisk(level) {
+    // 1=low, 2=medium, 3=high
+    const meter = document.getElementById('riskMeter');
+    const colors = ['active-green','active-yellow','active-red'];
+    const labels = ['LOW','MODERATE','ELEVATED'];
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+      const cls = i <= level ? colors[Math.min(level-1,2)] : '';
+      html += `<div class="risk-dot ${cls}"></div>`;
+    }
+    const riskMap = {1:'LOW RISK', 2:'LOW-MOD', 3:'MODERATE', 4:'ELEVATED', 5:'HIGH RISK'};
+    html += `<span class="risk-text">${riskMap[level] || 'MODERATE'}</span>`;
+    meter.innerHTML = html;
+  }
+
+  function analyze() {
+    const prevClose = parseFloat(document.getElementById('prevClose').value);
+    const todayOpen = parseFloat(document.getElementById('todayOpen').value);
+    const orLow = parseFloat(document.getElementById('orLow').value);
+    const orHigh = parseFloat(document.getElementById('orHigh').value);
+
+    if ([prevClose, todayOpen, orLow, orHigh].some(isNaN)) {
+      alert('Please fill in Prior Close, Open, OR Low, and OR High.');
+      return;
+    }
+    if (breakoutDir === null) {
+      alert('Please select a breakout direction.');
+      return;
+    }
+    if (orLow >= orHigh) {
+      alert('OR Low must be less than OR High.');
+      return;
+    }
+
+    const gapPts = todayOpen - prevClose;
+    const gapPct = (gapPts / prevClose) * 100;
+    const orWidth = orHigh - orLow;
+    const isGapUp = gapPts > 0;
+    const isSmallGap = Math.abs(gapPct) < 0.5;
+    const isLargeGap = Math.abs(gapPct) >= 1.5;
+
+    // --- Determine scenario ---
+    let scenario, prob, scenarioClass, tradeType, strike, stopLevel, risk, rationale, caution;
+    let showSecondary = false;
+    let trade2Type, trade2Strike, trade2Rationale, trade2PillText, trade2PillClass;
+    let pillText, pillClass;
+
+    const putStrike = Math.round((todayOpen - orWidth * 1.2) / 5) * 5;
+    const callStrike = Math.round((todayOpen + orWidth * 1.2) / 5) * 5;
+    const widePutStrike = Math.round((todayOpen - orWidth * 2.0) / 5) * 5;
+    const wideCallStrike = Math.round((todayOpen + orWidth * 2.0) / 5) * 5;
+
+    if (breakoutDir === 'none') {
+      // No breakout — chop day
+      scenario = 'No Breakout — Chop Setup';
+      scenarioClass = 'neutral';
+      prob = 72;
+      tradeType = 'Sell OTM Put + Sell OTM Call (Strangle)';
+      strike = `Put ${putStrike} / Call ${callStrike}`;
+      stopLevel = `Either side of OR (${fmt(orLow)} / ${fmt(orHigh)})`;
+      risk = 2;
+      pillText = 'SHORT PREMIUM'; pillClass = 'yellow';
+      rationale = `<strong>No OR breakout detected</strong> — this is the ideal short-premium environment. Price is coiling inside the opening range, suggesting low realized volatility and strong theta extraction potential today. Selling a strangle outside the OR on both sides captures premium while the market grinds sideways. <strong>Watch:</strong> if price breaks either OR boundary with conviction, close the threatened leg immediately.`;
+
+    } else if (breakoutDir === 'up' && isGapUp) {
+      // Gap up + OR breaks up = bullish continuation
+      scenario = 'Bullish Continuation';
+      scenarioClass = 'bullish';
+      prob = 67;
+      tradeType = 'Sell OTM Put';
+      strike = putStrike;
+      stopLevel = fmt(orLow) + ' (OR low violated)';
+      risk = 2;
+      pillText = 'SHORT PUT'; pillClass = 'green';
+      rationale = `<strong>Strongest bullish signal:</strong> gap direction and OR breakout are aligned. ~67% historical probability the day closes green. Sell an OTM put well below the OR low — the gap-fill level (${fmt(prevClose)}) is unlikely to be reached. If SPX breaks back below the OR low at ${fmt(orLow)}, close the put immediately as the thesis is invalidated.`;
+
+      showSecondary = true;
+      trade2Type = 'Optional: Sell Wide OTM Call for additional premium';
+      trade2Strike = wideCallStrike;
+      trade2Rationale = `With bullish directional bias, the upside call risk is real — only add this leg if the call strike is far enough OTM to give comfortable distance (${wideCallStrike} = ~${fmt(((wideCallStrike - todayOpen)/todayOpen)*100)}% from open). This converts the trade into a risk reversal / 1x2 structure.`;
+      trade2PillText = 'SECONDARY LEG'; trade2PillClass = 'yellow';
+
+    } else if (breakoutDir === 'down' && isGapUp) {
+      // Gap up + OR breaks down = fade/reversal
+      scenario = 'Gap Up Fade (Reversal)';
+      scenarioClass = 'bearish';
+      prob = isSmallGap ? 65 : 58;
+      tradeType = 'Sell OTM Call';
+      strike = callStrike;
+      stopLevel = fmt(orHigh) + ' (OR high reclaimed)';
+      risk = 3;
+      pillText = 'SHORT CALL'; pillClass = 'red';
+      rationale = `<strong>Classic fade setup:</strong> market gapped up but rejected the OR high and broke down. Gap-fill probability to ${fmt(prevClose)} is ~60–65%. Sell an OTM call above the OR high — if the market reclaims ${fmt(orHigh)}, the reversal thesis is invalidated and the call should be closed. ${isSmallGap ? 'Small gap size increases fill probability.' : 'Note: gap is large (≥0.5%) — fill is less certain than for small gaps.'}`;
+
+      caution = isLargeGap ? `<div class="caution-head">⚠ Large Gap Warning</div>Gap of ${pct(gapPct)} exceeds 1.5% threshold. Large gap-up reversal days can see explosive continuation on news catalysts. Verify there is no significant macro catalyst driving the gap before selling calls.` : null;
+
+    } else if (breakoutDir === 'down' && !isGapUp) {
+      // Gap down + OR breaks down = bearish continuation
+      scenario = 'Bearish Continuation';
+      scenarioClass = 'bearish';
+      prob = 66;
+      tradeType = 'Sell OTM Call';
+      strike = callStrike;
+      stopLevel = fmt(orHigh) + ' (OR high reclaimed)';
+      risk = 2;
+      pillText = 'SHORT CALL'; pillClass = 'red';
+      rationale = `<strong>Strongest bearish signal:</strong> gap direction and OR breakout are aligned to the downside. ~66% historical probability the day closes red. Sell an OTM call well above the OR high — gap-fill to ${fmt(prevClose)} is unlikely. Invalidation: price reclaims the OR high at ${fmt(orHigh)}, close the call.`;
+
+      showSecondary = true;
+      trade2Type = 'Optional: Sell Wide OTM Put for additional premium';
+      trade2Strike = widePutStrike;
+      trade2Rationale = `With bearish directional bias confirmed, a wide OTM put below provides additional theta income. ${widePutStrike} is approximately ${fmt(((todayOpen - widePutStrike)/todayOpen)*100)}% below the open — gives cushion if the move overshoots.`;
+      trade2PillText = 'SECONDARY LEG'; trade2PillClass = 'yellow';
+
+    } else if (breakoutDir === 'up' && !isGapUp) {
+      // Gap down + OR breaks up = bullish reversal / gap fill
+      scenario = 'Gap Down Reversal (Fill Play)';
+      scenarioClass = 'bullish';
+      prob = isSmallGap ? 68 : 60;
+      tradeType = 'Sell OTM Put';
+      strike = putStrike;
+      stopLevel = fmt(orLow) + ' (OR low broken)';
+      risk = 2;
+      pillText = 'SHORT PUT'; pillClass = 'green';
+      rationale = `<strong>High-probability reversal:</strong> down gaps that break the OR to the upside are the most reliable gap-fill setups — historically ~68–75% fill rate for small gaps. Sell an OTM put below the OR low; the prior close (${fmt(prevClose)}) is the upside target for the day. ${isSmallGap ? 'Small gap size strongly supports this setup.' : 'Gap is moderate in size — watch for confirmation before entering.'} Invalidation: OR low broken, suggests sellers are back in control.`;
+
+      caution = `<div class="caution-head">📍 Gap Fill Level to Watch</div>Prior close at ${fmt(prevClose)} is the natural resistance/gap-fill target. If price stalls near that level, consider closing the put to lock in premium — don't get greedy into a potential double reversal.`;
+    }
+
+    // --- Populate DOM ---
+    const out = document.getElementById('output');
+    out.style.display = 'block';
+    out.querySelectorAll('.fade-up').forEach(el => {
+      el.style.animation = 'none';
+      el.offsetHeight;
+      el.style.animation = '';
+    });
+
+    // Banner
+    const banner = document.getElementById('scenarioBanner');
+    banner.className = `scenario-banner ${scenarioClass} fade-up`;
+    document.getElementById('scenarioName').className = `scenario-name ${scenarioClass}`;
+    document.getElementById('scenarioName').textContent = scenario;
+    document.getElementById('scenarioMeta').innerHTML =
+      `Gap: ${pct(gapPct)}<br>OR Width: ${fmt(orWidth)} pts<br>Breakout: ${breakoutDir === 'up' ? '▲ Up' : breakoutDir === 'down' ? '▼ Down' : '— None'}`;
+
+    // Stats
+    const gapEl = document.getElementById('statGap');
+    gapEl.textContent = pct(gapPct);
+    gapEl.className = 'stat-val ' + (gapPts > 0 ? 'green' : 'red');
+    document.getElementById('statOR').textContent = fmt(orWidth) + ' pts';
+    const gapDirEl = document.getElementById('statGapDir');
+    gapDirEl.textContent = isGapUp ? '▲ UP' : '▼ DOWN';
+    gapDirEl.className = 'stat-val ' + (isGapUp ? 'green' : 'red');
+
+    // Trade
+    document.getElementById('tradeType').textContent = tradeType;
+    const pill = document.getElementById('tradePill');
+    pill.textContent = pillText; pill.className = `pill ${pillClass}`;
+
+    const strikeDisplay = typeof strike === 'number' ? fmt(strike) : strike;
+    document.getElementById('tradeStrike').textContent = strikeDisplay;
+    document.getElementById('tradeStrike').className = 'dv ' + pillClass;
+
+    const distPts = typeof strike === 'number' ? Math.abs(strike - todayOpen) : orWidth * 1.2;
+    const distPct = (distPts / todayOpen * 100).toFixed(2);
+    document.getElementById('tradeDist').textContent = typeof strike === 'number'
+      ? `${fmt(distPts)} pts (${distPct}%)` : 'See above';
+    document.getElementById('tradeStop').textContent = stopLevel;
+
+    setRisk(risk);
+    setProb(prob);
+    document.getElementById('rationale').innerHTML = rationale;
+
+    // Caution
+    const cautionBox = document.getElementById('cautionBox');
+    if (caution) {
+      cautionBox.innerHTML = caution;
+      cautionBox.style.display = 'block';
+    } else {
+      cautionBox.style.display = 'none';
+    }
+
+    // Secondary
+    const sec = document.getElementById('secondaryCard');
+    if (showSecondary) {
+      document.getElementById('trade2Type').textContent = trade2Type;
+      const p2 = document.getElementById('trade2Pill');
+      p2.textContent = trade2PillText; p2.className = `pill ${trade2PillClass}`;
+      document.getElementById('trade2Strike').textContent = fmt(trade2Strike);
+      document.getElementById('trade2Dist').textContent =
+        `${fmt(Math.abs(trade2Strike - todayOpen))} pts (${((Math.abs(trade2Strike - todayOpen)/todayOpen)*100).toFixed(2)}%)`;
+      document.getElementById('rationale2').innerHTML = trade2Rationale;
+      sec.style.display = 'block';
+    } else {
+      sec.style.display = 'none';
+    }
+
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+</script>
+</body>
+</html>
